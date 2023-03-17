@@ -1,0 +1,348 @@
+#include <iostream>
+#include <fstream>
+#include <map>
+#include <string>
+#include <conio.h>
+#include <stdlib.h>
+using namespace std;
+
+struct Book {
+    string title;
+    string author;
+    string ISBN;
+    bool borrowed;
+    string borrower;
+};
+class Library {
+    private:
+    map<string, Book> books;
+    map<string, string> borrowerHistory;
+    public:
+    Library() {
+        ifstream booksFile("books.txt");
+        string title, author, ISBN;
+        while (getline(booksFile, title)) {
+            getline(booksFile, author);
+            getline(booksFile, ISBN);
+            Book book = {title, author, ISBN, false, ""};
+            books[ISBN] = book;
+        }
+        ifstream borrowerFile("borrower_history.txt");
+        string borrower;
+        while (getline(borrowerFile, title)) {
+            getline(borrowerFile, borrower);
+            if (borrower != "returned") {
+                for (auto &[ISBN, book] : books) {
+                    if (book.title == title) {
+                        book.borrowed = true;
+                        book.borrower = borrower;
+                        borrowerHistory[title] = borrower;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    void addBook() {
+        add:
+        string title, author, ISBN;
+        cout << "Masukkan Judul Buku    : ";
+        getline(cin, title);
+        cout << "\t\t\tMasukkan Penulis BUku  : ";
+        getline(cin, author);
+        cout << "\t\t\tMasukkan ID Buku       : ";
+        getline(cin,ISBN);
+if (books.count(ISBN) > 0) {
+cout << "\n\t\t\tSudah terdapat buku dengan ID " << ISBN << endl;
+system("cls");
+return;
+}
+Book book = {title, author, ISBN, false, ""};
+books[ISBN] = book;
+
+ofstream booksFile("books.txt", ios::app);
+    booksFile << title << endl << author << endl << ISBN << endl;
+    booksFile.close();
+}
+void displayBooks() {
+    for (const auto& [ISBN, book] : books) {
+        cout << "\t\t\tJudul              : " << book.title << endl;
+        cout << "\t\t\tPenulis            : " << book.author << endl;
+        cout << "\t\t\tID Buku            : " << ISBN << endl;
+        cout << "\t\t\tStatus Peminjaman  : " << (book.borrowed ? "Dipinjam" : "Tersedia") << endl;
+        cout << "\t\t\tPeminjam           : " << book.borrower << endl;
+        cout << "\t\t\t------------------------------------------------------------------" << endl;
+    }
+}
+void searchBook(){
+    string title;
+    cout << "\t\t\tMasukkan judul buku yang anda cari : ";
+    getline(cin, title);
+    for (const auto& [ISBN, book] : books) {
+        if (book.title == title) {
+            cout << "\t\t\t------------------------------------------------------------------" << endl;
+            cout << "\t\t\tJudul              : " << book.title << endl;
+            cout << "\t\t\tPenulis            : " << book.author << endl;
+            cout << "\t\t\tID Buku            : " << ISBN << endl;
+            cout << "\t\t\tStatus Peminjaman  : " << (book.borrowed ? "Dipinjam" : "Tersedia") << endl;
+            cout << "\t\t\tPeminjam           : " << book.borrower << endl;
+            cout << "\t\t\t------------------------------------------------------------------" << endl;
+            return;
+
+        }
+
+    }
+    cout << "\n\t\t\tBuku tidak ditemukan." << endl;
+}
+void deleteBook(){
+string ISBN;
+cout << "\t\t\tMasukkan ID buku yang ingin anda hapus : ";
+getline(cin, ISBN);
+if(books.count(ISBN) > 0){
+if(books[ISBN].borrowed == true){
+cout << "\t\t\tBuku dengan ID " << ISBN << " sedang dipinjam, tidak dapat dihapus." << endl;
+}
+else{
+books.erase(ISBN);
+cout << "\t\t\tBuku dengan ID " << ISBN << " berhasil dihapus." << endl;
+saveBooks();
+}
+}
+else{
+cout << "\t\t\tBuku dengan ID " << ISBN << " tidak ditemukan." << endl;
+}
+}
+
+
+void borrowBook() {
+        string title;
+        string borrower;
+        string repeat;
+        bool found;
+        pinjam:
+        while (true) {
+            cin.clear();
+            cin.sync();
+            found = false;
+            cout <<"\n\n\n\n\n\t\t\t------------------------------------------------------------------" << endl;
+cout<<"\t\t\t\t\t\t  DAFTAR BUKU\n";
+cout <<"\t\t\t------------------------------------------------------------------" << endl;
+displayBooks();
+            cout << "\t\t\tMasukkan Judul buku yang ingin anda pinjam : ";
+            getline(cin,title);
+            for (auto &[ISBN, book] : books) {
+                if (book.title == title && !book.borrowed) {
+                    found = true;
+                    cout << "\t\t\tMasukkan Nama anda                         : ";
+                    getline(cin, borrower);
+                    book.borrowed = true;
+                    book.borrower = borrower;
+                    borrowerHistory[title] = borrower;
+                    cout<<endl;
+                    cout << "\t\t\tBuku "<<title<<" berhasil dipinjam. " << endl;
+                    saveBorrowerHistory();
+                    break;
+                }
+            }
+            if (!found) {
+                cout << "\n\t\t\tBuku tidak tersedia. \n" << endl;
+            }
+        cout<<"\n\t\t\tApakah anda Ingin meminjam buku lagi?['Y'(Iya)/'N'(Tidak] \n\t\t\t";
+getline(cin, repeat);
+if(repeat == "Y" || repeat == "y"){
+    system("cls");
+    goto pinjam;
+}else{
+    system("cls");
+    break;
+}
+}
+}
+void returnBook() {
+string title;
+cout << "Masukkan judul buku yang ingin anda kembalikan : ";
+fflush(stdin);
+getline(cin, title);
+for (auto &[ISBN, book] : books) {
+if (book.title == title && book.borrowed) {
+book.borrowed = false;
+book.borrower = "";
+borrowerHistory.erase(title);
+cout << "\n\t\t\tBuku " << title << " berhasil dikembalikan.\n" << endl;
+saveBorrowerHistory();
+return;
+}
+}
+cout << "\n\t\t\tTidak terdapat buku tersebut didaftar peminjaman.\n" << endl;
+}
+void saveBooks() {
+ofstream booksFile("books.txt", ios::trunc);
+for (const auto& [ISBN, book] : books) {
+booksFile << book.title << endl << book.author << endl << ISBN << endl;
+}
+booksFile.close();
+}
+void saveBorrowerHistory() {
+ofstream borrowerFile("borrower_history.txt", ios::trunc);
+for (const auto& [title, borrower] : borrowerHistory) {
+borrowerFile << title << endl << borrower << endl;
+}
+borrowerFile.close();
+}
+void displayBorrowerHistory() {
+for (const auto& [title, borrower] : borrowerHistory) {
+cout << "\t\t\tJudul      : " << title << endl;
+cout << "\t\t\tPeminjam   : " << borrower << endl;
+cout << "\t\t\t------------------------------------------------------------------" << endl;
+}
+}
+};
+void enter(){
+cout<<"\n\n\n\n\n";
+}
+void tab(){
+cout<<"\t\t\t";
+}
+int main() {
+menu:
+system("color F");
+Library library;
+while (true) {
+enter();
+cout <<"\t\t\t------------------------------------------------------------------" << endl;
+cout << "\t\t\t\t\t\tPerpustakaan Digital\n";
+cout <<"\t\t\t------------------------------------------------------------------" << endl;
+tab();
+cout << "MENU : \n";
+tab();
+cout << "1. Tambah Buku" << endl;
+tab();
+cout << "2. Daftar Buku" << endl;
+tab();
+cout << "3. Pinjam Buku" << endl;
+tab();
+cout << "4. Kembalikan Buku" << endl;
+tab();
+cout << "5. Daftar Peminjaman Buku" << endl;
+tab();
+cout << "6. Cari Buku" << endl;
+tab();
+cout << "7. Hapus Data Buku" << endl;
+tab();
+cout << "8. Keluar" << endl;
+tab();
+cout << "Masukkan pilihan anda (1-8): ";
+ int choice;
+ cin >>choice;
+cin.ignore();
+switch (choice) {
+case 1:
+system("cls");
+enter();
+cout <<"\t\t\t------------------------------------------------------------------" << endl;
+cout<<"\t\t\t\t\t\t    TAMBAH BUKU\n";
+cout <<"\t\t\t------------------------------------------------------------------" << endl;
+tab();
+library.addBook();
+system("cls");
+break;
+case 2:
+system("cls");
+enter();
+cout <<"\t\t\t------------------------------------------------------------------" << endl;
+cout<<"\t\t\t\t\t\t  DAFTAR BUKU\n";
+cout <<"\t\t\t------------------------------------------------------------------" << endl;
+library.displayBooks();
+cout<<endl;
+tab();
+cout<<"Tekan tombol apapun untuk kembali.";
+getch();
+system("cls");
+break;
+case 3:
+system("cls");
+library.borrowBook();
+tab();
+break;
+case 4:
+system("cls");
+enter();
+cout <<"\t\t\t------------------------------------------------------------------" << endl;
+cout<<"\t\t\t\t\t\tPENGEMBALIAN BUKU\n";
+cout <<"\t\t\t------------------------------------------------------------------" << endl;
+tab();
+library.returnBook();
+tab();
+cout<<"Tekan tombol apapun untuk kembali.";
+getch();
+system("cls");
+break;
+case 5:
+system("cls");
+enter();
+cout <<"\t\t\t------------------------------------------------------------------" << endl;
+cout<<"\t\t\t\t\t\tRIWAYAT PEMINJAM\n";
+cout <<"\t\t\t------------------------------------------------------------------" << endl;
+library.displayBorrowerHistory();
+tab();
+cout<<"Tekan tombol apapun untuk kembali.";
+tab();
+getch();
+system("cls");
+break;
+case 6:{
+mencari:
+string cari;
+system("cls");
+enter();
+cout <<"\t\t\t------------------------------------------------------------------" << endl;
+cout<<"\t\t\t\t\t\t\tCARI BUKU\n";
+cout <<"\t\t\t------------------------------------------------------------------" << endl;
+library.searchBook();
+cout<<"\n\t\t\tApakah anda Ingin mencari buku lagi?['Y'(Iya)/'N'(Tidak] \n\t\t\t";
+getline(cin, cari);
+if(cari == "Y" || cari == "y"){
+system("cls");
+goto mencari;
+break;
+}else{
+system("cls");
+break;
+}
+break;
+}
+case 7:{
+hapus:
+string hapus;
+system("cls");
+enter();
+cout <<"\t\t\t------------------------------------------------------------------" << endl;
+cout<<"\t\t\t\t\t\t  HAPUS DATA BUKU\n";
+cout <<"\t\t\t------------------------------------------------------------------" << endl;
+library.deleteBook();
+cout<<"\n\t\t\tApakah anda Ingin menghapus data buku lagi?['Y'(Iya)/'N'(Tidak] \n\t\t\t";
+getline(cin, hapus);
+if(hapus == "Y" || hapus == "y"){
+system("cls");
+goto hapus;
+break;
+}else{
+system("cls");
+break;
+}
+}
+break;
+case 8:
+return 0;
+default:
+cout<<endl;
+tab();
+cout << "Menu tidak tersedia" << endl;
+tab();
+getch();
+system("cls");
+break;
+}
+}
+return 0;
+}
